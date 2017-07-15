@@ -65,8 +65,6 @@ public class Worker implements Runnable {
 
     private static final Log LOG = LogFactory.getLog(Worker.class);
 
-    private static final int MAX_INITIALIZATION_ATTEMPTS = 20;
-
     private WorkerLog wlog = new WorkerLog();
 
     private final String applicationName;
@@ -83,6 +81,8 @@ public class Worker implements Runnable {
     // Backoff time when running tasks if they encounter exceptions
     private final long taskBackoffTimeMillis;
     private final long failoverTimeMillis;
+    
+    private final int maxInitializationAttempts;
 
     // private final KinesisClientLeaseManager leaseManager;
     private final KinesisClientLibLeaseCoordinator leaseCoordinator;
@@ -245,6 +245,7 @@ public class Worker implements Runnable {
                 metricsFactory,
                 config.getTaskBackoffTimeMillis(),
                 config.getFailoverTimeMillis(),
+                Builder.DEFAULT_MAX_INITIALIZATION_ATTEMPTS,
                 config.getSkipShardSyncAtWorkerInitializationIfLeasesExist(),
                 config.getShardPrioritizationStrategy());
 
@@ -309,6 +310,7 @@ public class Worker implements Runnable {
             IMetricsFactory metricsFactory,
             long taskBackoffTimeMillis,
             long failoverTimeMillis,
+            int maxInitializationAttempts,
             boolean skipShardSyncAtWorkerInitializationIfLeasesExist,
             ShardPrioritization shardPrioritization) {
         this.applicationName = applicationName;
@@ -331,7 +333,8 @@ public class Worker implements Runnable {
                         metricsFactory,
                         executorService);
         this.taskBackoffTimeMillis = taskBackoffTimeMillis;
-        this.failoverTimeMillis = failoverTimeMillis;        
+        this.failoverTimeMillis = failoverTimeMillis;
+        this.maxInitializationAttempts = maxInitializationAttempts;
         this.skipShardSyncAtWorkerInitializationIfLeasesExist = skipShardSyncAtWorkerInitializationIfLeasesExist;
         this.shardPrioritization = shardPrioritization;
     }
@@ -355,21 +358,25 @@ public class Worker implements Runnable {
         try {
             initialize();
             LOG.info("Initialization complete. Starting worker loop.");
+            
+            while (!shouldShutdown()) {
+                runProcessLoop();
+            }
         } catch (RuntimeException e1) {
-            LOG.error("Unable to initialize after " + MAX_INITIALIZATION_ATTEMPTS + " attempts. Shutting down.", e1);
+            LOG.error("Unable to initialize after " + maxInitializationAttempts + " attempts. Shutting down.", e1);
             shutdown();
+            throw e1;
+        } finally {
+        	finalShutdown();
+        	LOG.info("Worker loop is complete. Exiting from worker.");
         }
-
-        while (!shouldShutdown()) {
-            runProcessLoop();
-        }
-
-        finalShutdown();
-        LOG.info("Worker loop is complete. Exiting from worker.");
     }
 
     @VisibleForTesting
     void runProcessLoop() {
+
+    	int numOfConsecutiveFailures = 0;
+
         try {
             boolean foundCompletedShard = false;
             Set<ShardInfo> assignedShards = new HashSet<>();
@@ -389,12 +396,20 @@ public class Worker implements Runnable {
 
             // clean up shard consumers for unassigned shards
             cleanupShardConsumers(assignedShards);
+            
+            numOfConsecutiveFailures = 0;
 
             wlog.info("Sleeping ...");
             Thread.sleep(idleTimeInMilliseconds);
         } catch (Exception e) {
             LOG.error(String.format("Worker.run caught exception, sleeping for %s milli seconds!",
                     String.valueOf(idleTimeInMilliseconds)), e);
+
+            numOfConsecutiveFailures++;
+
+            if (numOfConsecutiveFailures >= maxInitializationAttempts)
+            	throw new RuntimeException(e);
+
             try {
                 Thread.sleep(idleTimeInMilliseconds);
             } catch (InterruptedException ex) {
@@ -408,7 +423,7 @@ public class Worker implements Runnable {
         boolean isDone = false;
         Exception lastException = null;
 
-        for (int i = 0; (!isDone) && (i < MAX_INITIALIZATION_ATTEMPTS); i++) {
+        for (int i = 0; (!isDone) && (i < maxInitializationAttempts); i++) {
             try {
                 LOG.info("Initialization attempt " + (i + 1));
                 LOG.info("Initializing LeaseCoordinator");
@@ -901,6 +916,8 @@ public class Worker implements Runnable {
      * Builder to construct a Worker instance.
      */
     public static class Builder {
+    	
+    	public static final int DEFAULT_MAX_INITIALIZATION_ATTEMPTS = 20;
 
         private IRecordProcessorFactory recordProcessorFactory;
         private KinesisClientLibConfiguration config;
@@ -910,6 +927,7 @@ public class Worker implements Runnable {
         private IMetricsFactory metricsFactory;
         private ExecutorService execService;
         private ShardPrioritization shardPrioritization;
+        private int maxInitializationAttempts = DEFAULT_MAX_INITIALIZATION_ATTEMPTS;
 
         /**
          * Default constructor.
@@ -1021,6 +1039,11 @@ public class Worker implements Runnable {
             this.shardPrioritization = shardPrioritization;
             return this;
         }
+        
+        public Builder maxInitializationAttempts(int maxInitializationAttempts) {
+            this.maxInitializationAttempts = maxInitializationAttempts;
+            return this;
+        }
 
         /**
          * Build the Worker instance.
@@ -1117,6 +1140,7 @@ public class Worker implements Runnable {
                     metricsFactory,
                     config.getTaskBackoffTimeMillis(),
                     config.getFailoverTimeMillis(),
+                    maxInitializationAttempts,
                     config.getSkipShardSyncAtWorkerInitializationIfLeasesExist(),
                     shardPrioritization);
 

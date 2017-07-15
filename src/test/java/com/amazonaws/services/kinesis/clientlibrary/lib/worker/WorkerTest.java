@@ -238,6 +238,7 @@ public class WorkerTest {
                         nullMetricsFactory,
                         taskBackoffTimeMillis,
                         failoverTimeMillis,
+                        20,
                         KinesisClientLibConfiguration.DEFAULT_SKIP_SHARD_SYNC_AT_STARTUP_IF_LEASES_EXIST,
                         shardPrioritization);
         ShardInfo shardInfo = new ShardInfo(dummyKinesisShardId, testConcurrencyToken, null, ExtendedSequenceNumber.TRIM_HORIZON);
@@ -277,7 +278,7 @@ public class WorkerTest {
 
         Worker worker = new Worker(stageName, streamletFactory, streamConfig, INITIAL_POSITION_LATEST,
                 parentShardPollIntervalMillis, shardSyncIntervalMillis, cleanupLeasesUponShardCompletion, checkpoint,
-                leaseCoordinator, execService, nullMetricsFactory, taskBackoffTimeMillis, failoverTimeMillis,
+                leaseCoordinator, execService, nullMetricsFactory, taskBackoffTimeMillis, failoverTimeMillis, 20,
                 KinesisClientLibConfiguration.DEFAULT_SKIP_SHARD_SYNC_AT_STARTUP_IF_LEASES_EXIST, shardPrioritization);
 
         Worker workerSpy = spy(worker);
@@ -342,6 +343,7 @@ public class WorkerTest {
                         nullMetricsFactory,
                         taskBackoffTimeMillis,
                         failoverTimeMillis,
+                        20,
                         KinesisClientLibConfiguration.DEFAULT_SKIP_SHARD_SYNC_AT_STARTUP_IF_LEASES_EXIST,
                         shardPrioritization);
 
@@ -396,6 +398,7 @@ public class WorkerTest {
                         nullMetricsFactory,
                         taskBackoffTimeMillis,
                         failoverTimeMillis,
+                        20,
                         KinesisClientLibConfiguration.DEFAULT_SKIP_SHARD_SYNC_AT_STARTUP_IF_LEASES_EXIST,
                         shardPrioritization);
         worker.run();
@@ -745,7 +748,7 @@ public class WorkerTest {
         Worker worker = new Worker("testRequestShutdown", recordProcessorFactory, streamConfig,
                 INITIAL_POSITION_TRIM_HORIZON, parentShardPollIntervalMillis, shardSyncIntervalMillis,
                 cleanupLeasesUponShardCompletion, leaseCoordinator, leaseCoordinator, executorService, metricsFactory,
-                taskBackoffTimeMillis, failoverTimeMillis, false, shardPrioritization);
+                taskBackoffTimeMillis, failoverTimeMillis, 20, false, shardPrioritization);
 
         when(executorService.submit(Matchers.<Callable<TaskResult>> any()))
                 .thenAnswer(new ShutdownHandlingAnswer(taskFuture));
@@ -813,7 +816,7 @@ public class WorkerTest {
         Worker worker = new Worker("testRequestShutdown", recordProcessorFactory, streamConfig,
                 INITIAL_POSITION_TRIM_HORIZON, parentShardPollIntervalMillis, shardSyncIntervalMillis,
                 cleanupLeasesUponShardCompletion, leaseCoordinator, leaseCoordinator, executorService, metricsFactory,
-                taskBackoffTimeMillis, failoverTimeMillis, false, shardPrioritization);
+                taskBackoffTimeMillis, failoverTimeMillis, 20, false, shardPrioritization);
 
         when(executorService.submit(Matchers.<Callable<TaskResult>> any()))
                 .thenAnswer(new ShutdownHandlingAnswer(taskFuture));
@@ -883,7 +886,7 @@ public class WorkerTest {
         Worker worker = new Worker("testRequestShutdown", recordProcessorFactory, streamConfig,
                 INITIAL_POSITION_TRIM_HORIZON, parentShardPollIntervalMillis, shardSyncIntervalMillis,
                 cleanupLeasesUponShardCompletion, leaseCoordinator, leaseCoordinator, executorService, metricsFactory,
-                taskBackoffTimeMillis, failoverTimeMillis, false, shardPrioritization);
+                taskBackoffTimeMillis, failoverTimeMillis, 20, false, shardPrioritization);
 
         when(executorService.submit(Matchers.<Callable<TaskResult>> any()))
                 .thenAnswer(new ShutdownHandlingAnswer(taskFuture));
@@ -984,7 +987,7 @@ public class WorkerTest {
         Worker worker = new Worker("testRequestShutdown", recordProcessorFactory, streamConfig,
                 INITIAL_POSITION_TRIM_HORIZON, parentShardPollIntervalMillis, shardSyncIntervalMillis,
                 cleanupLeasesUponShardCompletion, leaseCoordinator, leaseCoordinator, executorService, metricsFactory,
-                taskBackoffTimeMillis, failoverTimeMillis, false, shardPrioritization);
+                taskBackoffTimeMillis, failoverTimeMillis, 20, false, shardPrioritization);
 
         when(executorService.submit(Matchers.<Callable<TaskResult>> any()))
                 .thenAnswer(new ShutdownHandlingAnswer(taskFuture));
@@ -1089,7 +1092,7 @@ public class WorkerTest {
         Worker worker = new Worker("testRequestShutdown", recordProcessorFactory, streamConfig,
                 INITIAL_POSITION_TRIM_HORIZON, parentShardPollIntervalMillis, shardSyncIntervalMillis,
                 cleanupLeasesUponShardCompletion, leaseCoordinator, leaseCoordinator, executorService, metricsFactory,
-                taskBackoffTimeMillis, failoverTimeMillis, false, shardPrioritization);
+                taskBackoffTimeMillis, failoverTimeMillis, 20, false, shardPrioritization);
 
         when(executorService.submit(Matchers.<Callable<TaskResult>> any()))
                 .thenAnswer(new ShutdownHandlingAnswer(taskFuture));
@@ -1161,7 +1164,7 @@ public class WorkerTest {
         Worker worker = new Worker("testRequestShutdown", recordProcessorFactory, streamConfig,
                 INITIAL_POSITION_TRIM_HORIZON, parentShardPollIntervalMillis, shardSyncIntervalMillis,
                 cleanupLeasesUponShardCompletion, leaseCoordinator, leaseCoordinator, executorService, metricsFactory,
-                taskBackoffTimeMillis, failoverTimeMillis, false, shardPrioritization);
+                taskBackoffTimeMillis, failoverTimeMillis, 20, false, shardPrioritization);
 
         when(executorService.submit(Matchers.<Callable<TaskResult>> any()))
                 .thenAnswer(new ShutdownHandlingAnswer(taskFuture));
@@ -1505,6 +1508,7 @@ public class WorkerTest {
                         metricsFactory,
                         taskBackoffTimeMillis,
                         failoverTimeMillis,
+                        20,
                         KinesisClientLibConfiguration.DEFAULT_SKIP_SHARD_SYNC_AT_STARTUP_IF_LEASES_EXIST,
                         shardPrioritization);
         
